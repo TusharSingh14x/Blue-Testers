@@ -104,7 +104,7 @@ export function Header() {
           <Input
             type="search"
             placeholder="Search..."
-            className="bg-transparent border-0 outline-none text-sm"
+            className="bg-transparent border-0 outline-none text-sm text-slate-900 placeholder:text-slate-500"
           />
         </div>
         <Popover>

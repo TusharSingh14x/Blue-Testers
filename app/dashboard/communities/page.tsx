@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRole } from '@/hooks/use-role';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Chatbot } from '@/components/Chatbot';
 
 interface Community {
   id: string;
@@ -412,6 +413,9 @@ export default function CommunitiesPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* AI Chat Assistant */}
+      <Chatbot />
     </div>
   );
 }

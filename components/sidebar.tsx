@@ -16,39 +16,39 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-  { 
-    label: 'Events', 
-    href: '/dashboard/events', 
+  {
+    label: 'Events',
+    href: '/dashboard/events',
     icon: Calendar,
     roles: ['user', 'organizer', 'admin'] // All can view
   },
-  { 
-    label: 'Resources', 
-    href: '/dashboard/resources', 
+  {
+    label: 'Resources',
+    href: '/dashboard/resources',
     icon: BookOpen,
     roles: ['user', 'organizer', 'admin'] // All can view
   },
-  { 
-    label: 'Communities', 
-    href: '/dashboard/communities', 
+  {
+    label: 'Communities',
+    href: '/dashboard/communities',
     icon: Users,
     roles: ['user', 'organizer', 'admin'] // All can join/view
   },
-  { 
-    label: 'Analytics', 
-    href: '/dashboard/analytics', 
+  {
+    label: 'Analytics',
+    href: '/dashboard/analytics',
     icon: BarChart3,
     roles: ['user', 'organizer', 'admin'] // All can view
   },
-  { 
-    label: 'Resource Approvals', 
-    href: '/dashboard/resources/approvals', 
+  {
+    label: 'Resource Approvals',
+    href: '/dashboard/resources/approvals',
     icon: ShieldCheck,
     roles: ['admin'] // Admin only
   },
-  { 
-    label: 'Settings', 
-    href: '/dashboard/settings', 
+  {
+    label: 'Settings',
+    href: '/dashboard/settings',
     icon: Settings,
     roles: ['user', 'organizer', 'admin'] // All can access
   },
@@ -60,7 +60,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   // Filter nav items based on user role
-  const visibleNavItems = navItems.filter((item) => 
+  const visibleNavItems = navItems.filter((item) =>
     item.roles.includes(role || 'user')
   );
 
