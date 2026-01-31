@@ -138,3 +138,51 @@ export async function POST(
   }
 }
 
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> | { id: string } }
+) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const messageId = searchParams.get('messageId');
+
+    if (!messageId) {
+      return NextResponse.json({ error: 'Message ID is required' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const { data: userProfile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (userProfile?.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden: Admins only' }, { status: 403 });
+    }
+
+    const { error } = await supabase
+      .from('community_messages')
+      .delete()
+      .eq('id', messageId);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting message:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to delete message' },
+      { status: 500 }
+    );
+  }
+}

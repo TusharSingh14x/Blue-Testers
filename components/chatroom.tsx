@@ -87,12 +87,36 @@ export function Chatroom({ communityId }: ChatroomProps) {
     }
   };
 
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm('Are you sure you want to delete this message?')) return;
+
+    try {
+      const response = await fetch(`/api/communities/${communityId}/messages?messageId=${messageId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // Optimistically remove the message from state
+        setMessages((prev) => prev.filter((m) => m.id !== messageId));
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete message: ${error.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      alert('Failed to delete message');
+    }
+  };
+
   const formatTime = (dateString: string) => {
+    // Treat the dateString as UTC
     const date = new Date(dateString);
     const now = new Date();
+
+    // Calculate difference in milliseconds
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
-    
+
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`;
@@ -121,28 +145,41 @@ export function Chatroom({ communityId }: ChatroomProps) {
           ) : (
             <>
               {messages.map((message) => {
-                const isOwnMessage = message.user.id === user?.id;
+                const isOwnMessage = message.user?.id === user?.id;
+                const isAdmin = profile?.role === 'admin';
+                const fullName = message.user?.full_name || 'Unknown User';
+                const initial = fullName.charAt(0)?.toUpperCase() || '?';
+
                 return (
                   <div
                     key={message.id}
                     className={cn(
-                      'flex gap-3',
+                      'flex gap-3 group relative',
                       isOwnMessage && 'flex-row-reverse'
                     )}
                   >
                     <div className="flex-shrink-0">
                       <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-medium">
-                        {message.user.full_name.charAt(0).toUpperCase()}
+                        {initial}
                       </div>
                     </div>
                     <div className={cn('flex-1', isOwnMessage && 'flex flex-col items-end')}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-medium text-slate-900">
-                          {message.user.full_name}
+                          {fullName}
                         </span>
                         <span className="text-xs text-slate-500">
                           {formatTime(message.created_at)}
                         </span>
+                        {isAdmin && !isOwnMessage && (
+                          <button
+                            onClick={() => handleDeleteMessage(message.id)}
+                            className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 text-xs transition-opacity"
+                            title="Delete message"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                       <div
                         className={cn(
@@ -163,7 +200,7 @@ export function Chatroom({ communityId }: ChatroomProps) {
           )}
         </div>
       </ScrollArea>
-      
+
       <form onSubmit={sendMessage} className="border-t border-slate-200 p-4">
         <div className="flex gap-2">
           <Input
