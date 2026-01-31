@@ -80,7 +80,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const fetchEvent = async () => {
     try {
       console.log('Fetching event:', eventId);
-      const response = await fetch(`/api/events/${eventId}`);
+      const response = await fetch(`/api/events/${eventId}?t=${new Date().getTime()}`);
       if (response.ok) {
         const data = await response.json();
         console.log('Event fetched:', data);
@@ -98,7 +98,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const fetchAttendees = async () => {
     try {
-      const response = await fetch(`/api/events/${eventId}/attendees`);
+      const response = await fetch(`/api/events/${eventId}/attendees?t=${new Date().getTime()}`);
       if (response.ok) {
         const data = await response.json();
         setAttendees(data);
@@ -112,9 +112,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
   const checkAttendance = async () => {
     if (!user) return;
-    
+
     try {
-      const response = await fetch(`/api/events/${eventId}/attendees`);
+      const response = await fetch(`/api/events/${eventId}/attendees?t=${new Date().getTime()}`);
       if (response.ok) {
         const data = await response.json();
         const userAttendee = data.find((a: Attendee) => a.user_id === user.id);
@@ -135,7 +135,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     try {
       const method = isAttending ? 'DELETE' : 'POST';
       console.log(`Attempting to ${isAttending ? 'unregister' : 'register'} for event:`, eventId);
-      
+
       const response = await fetch(`/api/events/${eventId}/attendees`, {
         method,
         headers: {
@@ -214,7 +214,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
     const diff = endDate.getTime() - startDate.getTime();
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours < 1) return `${minutes} minutes`;
     if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''}`;
     const days = Math.floor(hours / 24);
@@ -265,7 +265,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
 
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg p-8 text-white relative overflow-hidden">
         {event.image_url && (
-          <div 
+          <div
             className="absolute inset-0 opacity-20 bg-cover bg-center"
             style={{ backgroundImage: `url(${event.image_url})` }}
           />
@@ -277,9 +277,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 {event.status}
               </Badge>
               {event.community && (
-              <Badge variant="secondary" className="bg-white text-blue-600">
+                <Badge variant="secondary" className="bg-white text-blue-600">
                   {event.community.name}
-              </Badge>
+                </Badge>
               )}
             </div>
             <h1 className="text-4xl font-bold">{event.title}</h1>
@@ -289,11 +289,11 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
       </div>
-      
+
       {event.image_url && (
         <div className="rounded-lg overflow-hidden">
-          <img 
-            src={event.image_url} 
+          <img
+            src={event.image_url}
             alt={event.title}
             className="w-full h-64 object-cover"
           />
@@ -336,9 +336,9 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
               {event.description && (
-              <div className="bg-slate-50 p-4 rounded-lg">
+                <div className="bg-slate-50 p-4 rounded-lg">
                   <p className="text-slate-900 whitespace-pre-wrap">{event.description}</p>
-              </div>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -358,26 +358,26 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                   </CardContent>
                 </Card>
               ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {attendees.slice(0, 12).map((attendee) => (
-                  <Card key={attendee.id}>
-                    <CardContent className="pt-6 text-center">
+                    <Card key={attendee.id}>
+                      <CardContent className="pt-6 text-center">
                         <div className="w-12 h-12 bg-blue-600 rounded-full mx-auto mb-2 flex items-center justify-center text-white font-medium">
-                          {attendee.user.full_name.charAt(0).toUpperCase()}
+                          {attendee.user?.full_name?.charAt(0).toUpperCase() || '?'}
                         </div>
                         <p className="font-medium text-slate-900 text-sm">
-                          {attendee.user.full_name}
+                          {attendee.user?.full_name || 'Unknown User'}
                         </p>
-                      <p className="text-xs text-slate-600 mt-1">Attending</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                        <p className="text-xs text-slate-600 mt-1">Attending</p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               )}
               {attendees.length > 12 && (
                 <Button variant="outline" className="w-full">
                   View All {attendees.length} Attendees
-              </Button>
+                </Button>
               )}
             </TabsContent>
           </Tabs>
@@ -403,8 +403,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 {registering
                   ? 'Processing...'
                   : isAttending
-                  ? 'Cancel Registration'
-                  : 'Register for Event'}
+                    ? 'Cancel Registration'
+                    : 'Register for Event'}
               </Button>
             </CardContent>
           </Card>
@@ -413,7 +413,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             <CardContent className="pt-6 space-y-3">
               <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
                 <DialogTrigger asChild>
-                  <button 
+                  <button
                     onClick={handleShare}
                     className="flex items-center gap-2 text-slate-600 hover:text-blue-600 w-full transition-colors"
                   >
@@ -476,17 +476,17 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </Card>
 
           {event.organizer && (
-          <Card>
-            <CardHeader>
+            <Card>
+              <CardHeader>
                 <CardTitle>Organizer</CardTitle>
-            </CardHeader>
-            <CardContent>
+              </CardHeader>
+              <CardContent>
                 <p className="text-sm font-medium text-slate-900">
                   {event.organizer.full_name}
-              </p>
+                </p>
                 <p className="text-xs text-slate-600 mt-1">{event.organizer.email}</p>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
           )}
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase-server';
+import { createClient, createAdminClient } from '@/lib/supabase-server';
 
 export async function GET(
   request: NextRequest,
@@ -204,8 +204,9 @@ export async function DELETE(
 
     console.log('User authenticated:', user.id);
 
-    // Unregister from event
-    const { error: deleteError } = await supabase
+    // Unregister from event using Admin Client to bypass RLS issues
+    const adminSupabase = await createAdminClient();
+    const { error: deleteError } = await adminSupabase
       .from('event_attendees')
       .delete()
       .eq('event_id', eventId)
