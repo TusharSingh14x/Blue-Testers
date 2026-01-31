@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Users } from 'lucide-react';
+import { Plus, Search, Users, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { useRole } from '@/hooks/use-role';
@@ -14,6 +14,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Chatbot } from '@/components/Chatbot';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Community {
   id: string;
@@ -25,16 +35,18 @@ interface Community {
 
 export default function CommunitiesPage() {
   const { user, profile } = useAuth();
-  const { canManageContent, role } = useRole();
+  const { canManageContent, role, loading: authLoading } = useRole();
   const { toast } = useToast();
   const router = useRouter();
+
+  const isAdmin = role === 'admin';
 
   // Debug logging
   useEffect(() => {
     console.log('Communities Page - User role:', role);
-    console.log('Communities Page - Profile:', profile);
-    console.log('Communities Page - canManageContent:', canManageContent);
-  }, [role, profile, canManageContent]);
+    console.log('Communities Page - isAdmin:', isAdmin);
+    console.log('Communities Page - authLoading:', authLoading);
+  }, [role, isAdmin, authLoading]);
   const [search, setSearch] = useState('');
   const [communities, setCommunities] = useState<Community[]>([]);
   const [joinedCommunities, setJoinedCommunities] = useState<Set<string>>(new Set());
@@ -42,38 +54,8 @@ export default function CommunitiesPage() {
   const [creating, setCreating] = useState(false);
   const [newCommunity, setNewCommunity] = useState({ name: '', description: '' });
 
-  useEffect(() => {
-    fetchCommunities();
-    fetchJoinedCommunities();
-    ensureGeneralCommunity();
-  }, [user]);
-
-  const ensureGeneralCommunity = async () => {
-    // Only organizers/admins can create the General community
-    if (!canManageContent) return;
-
-    // Check if General community exists, if not, create it
-    try {
-      const response = await fetch('/api/communities');
-      if (response.ok) {
-        const communities = await response.json();
-        const generalExists = communities.some((c: Community) => c.name === 'General');
-
-        if (!generalExists) {
-          // Only organizers/admins can trigger creation
-          const initResponse = await fetch('/api/communities/init', {
-            method: 'POST',
-          });
-          if (initResponse.ok) {
-            await fetchCommunities();
-            await fetchJoinedCommunities();
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to ensure General community:', error);
-    }
-  };
+  // Delete state
+  const [communityToDelete, setCommunityToDelete] = useState<string | null>(null);
 
   const fetchCommunities = async () => {
     try {
@@ -81,8 +63,6 @@ export default function CommunitiesPage() {
       if (response.ok) {
         const data = await response.json();
         setCommunities(data);
-        // Only organizers/admins can create General community
-        // Regular users will just see it if it exists
       }
     } catch (error) {
       console.error('Failed to fetch communities:', error);
@@ -95,18 +75,43 @@ export default function CommunitiesPage() {
     if (!user) return;
 
     try {
-      // Fetch all memberships in a single API call
       const response = await fetch('/api/communities/memberships');
       if (response.ok) {
         const data = await response.json();
         setJoinedCommunities(new Set(data.memberships || []));
-      } else {
-        console.error('Failed to fetch memberships:', await response.json());
       }
     } catch (error) {
       console.error('Failed to fetch joined communities:', error);
     }
   };
+
+  const ensureGeneralCommunity = async () => {
+    if (!canManageContent) return;
+
+    try {
+      const response = await fetch('/api/communities');
+      if (response.ok) {
+        const communities = await response.json();
+        const generalExists = communities.some((c: Community) => c.name === 'General');
+
+        if (!generalExists) {
+          const initResponse = await fetch('/api/communities/init', { method: 'POST' });
+          if (initResponse.ok) {
+            await fetchCommunities();
+            await fetchJoinedCommunities();
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to ensure General community:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCommunities();
+    fetchJoinedCommunities();
+    ensureGeneralCommunity();
+  }, [user]);
 
   const handleJoin = async (communityId: string) => {
     if (!user) {
@@ -120,17 +125,13 @@ export default function CommunitiesPage() {
       });
 
       if (response.ok) {
-        // Optimistically update the UI immediately
         setJoinedCommunities(prev => new Set(prev).add(communityId));
         toast({
           title: 'Joined Community',
           description: 'You have successfully joined the community.',
         });
-        // Refresh communities to update member counts
         await fetchCommunities();
-        // Refresh memberships in the background (non-blocking)
         fetchJoinedCommunities().catch(console.error);
-        // Navigate to the community page after joining
         router.push(`/dashboard/communities/${communityId}`);
       } else {
         const error = await response.json();
@@ -139,7 +140,6 @@ export default function CommunitiesPage() {
           description: `Failed to join: ${error.error}`,
           variant: 'destructive',
         });
-        // Revert optimistic update on error
         setJoinedCommunities(prev => {
           const updated = new Set(prev);
           updated.delete(communityId);
@@ -153,7 +153,6 @@ export default function CommunitiesPage() {
         description: 'Failed to join community',
         variant: 'destructive',
       });
-      // Revert optimistic update on error
       setJoinedCommunities(prev => {
         const updated = new Set(prev);
         updated.delete(communityId);
@@ -209,6 +208,40 @@ export default function CommunitiesPage() {
       });
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteCommunity = async () => {
+    if (!communityToDelete) return;
+
+    try {
+      const response = await fetch(`/api/communities/${communityToDelete}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast({
+          title: 'Community Deleted',
+          description: 'The community has been permanently deleted.',
+        });
+        await fetchCommunities();
+      } else {
+        const error = await response.json();
+        toast({
+          title: 'Error',
+          description: `Failed to delete community: ${error.error}`,
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to delete community:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete community',
+        variant: 'destructive',
+      });
+    } finally {
+      setCommunityToDelete(null);
     }
   };
 
@@ -387,7 +420,7 @@ export default function CommunitiesPage() {
           .map((community) => {
             const isJoined = joinedCommunities.has(community.id);
             return (
-              <Card key={community.id} className="hover:shadow-md transition-shadow">
+              <Card key={community.id} className="hover:shadow-md transition-shadow relative">
                 <CardContent className="pt-6">
                   <div className="space-y-4">
                     <div>
@@ -426,6 +459,20 @@ export default function CommunitiesPage() {
                     </div>
                   </div>
                 </CardContent>
+                {isAdmin && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 text-red-600 bg-red-50 hover:bg-red-100 hover:text-red-700 z-10 shadow-sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setCommunityToDelete(community.id);
+                    }}
+                  >
+                    <Trash2 size={18} />
+                  </Button>
+                )}
               </Card>
             );
           })}
@@ -446,6 +493,26 @@ export default function CommunitiesPage() {
 
       {/* AI Chat Assistant */}
       <Chatbot />
+
+      <AlertDialog open={!!communityToDelete} onOpenChange={(open) => !open && setCommunityToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Community</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this community? This action cannot be undone and will delete all messages and memberships associated with it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              onClick={handleDeleteCommunity}
+            >
+              Delete Community
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

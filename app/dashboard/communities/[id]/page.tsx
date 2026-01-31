@@ -5,10 +5,22 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, MessageSquare, Calendar } from 'lucide-react';
+import { Users, MessageSquare, Calendar, Trash2 } from 'lucide-react';
 import { Chatroom } from '@/components/chatroom';
 import { useAuth } from '@/hooks/use-auth';
+import { useRole } from '@/hooks/use-role';
 import Link from 'next/link';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Community {
   id: string;
@@ -34,8 +46,10 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   // Unwrap params if it's a Promise (Next.js 15)
   const resolvedParams = 'then' in params ? use(params) : params;
   const communityId = resolvedParams.id;
-  
+
   const { user } = useAuth();
+  const { role, loading: authLoading } = useRole();
+  const { toast } = useToast();
   const router = useRouter();
   const [community, setCommunity] = useState<Community | null>(null);
   const [isJoined, setIsJoined] = useState(false);
@@ -43,11 +57,15 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
 
+  // State for delete dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+
   useEffect(() => {
+    console.log('Current User Role:', role); // Debugging
     fetchCommunity();
     checkMembership();
     fetchMembers();
-  }, [communityId, user]);
+  }, [communityId, user, role]);
 
   const fetchCommunity = async () => {
     try {
@@ -65,7 +83,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
 
   const checkMembership = async () => {
     if (!user) return;
-    
+
     try {
       const response = await fetch(`/api/communities/${communityId}/members`);
       if (response.ok) {
@@ -120,6 +138,7 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
   };
 
   const handleLeave = async () => {
+    console.log('Attempting to leave community:', communityId);
     if (!confirm('Are you sure you want to leave this community?')) return;
 
     try {
@@ -127,21 +146,37 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
         method: 'DELETE',
       });
 
+      console.log('Leave response status:', response.status);
+
       if (response.ok) {
         setIsJoined(false);
         await fetchCommunity();
         await fetchMembers();
+        toast({
+          title: 'Left Community',
+          description: 'You have left the community.',
+        });
       } else {
         const errorData = await response.json();
-        alert(`Failed to leave: ${errorData.error || errorData.message || 'Unknown error'}`);
+        console.error('Leave error data:', errorData);
+        toast({
+          title: 'Error',
+          description: `Failed to leave: ${errorData.error || errorData.message || 'Unknown error'}`,
+          variant: 'destructive',
+        });
       }
     } catch (error) {
-      console.error('Failed to leave community:', error);
-      alert('Failed to leave community');
+      console.error('Failed to leave community (catch):', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to leave community',
+        variant: 'destructive',
+      });
     }
   };
 
-  if (loading) {
+  // Combined loading check
+  if (loading || authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -205,17 +240,17 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
 
       {isJoined ? (
         <Tabs defaultValue="chatroom" className="space-y-4">
-        <TabsList>
+          <TabsList>
             <TabsTrigger value="chatroom">Chatroom</TabsTrigger>
-          <TabsTrigger value="members">Members</TabsTrigger>
-        </TabsList>
+            <TabsTrigger value="members">Members</TabsTrigger>
+          </TabsList>
 
           <TabsContent value="chatroom">
             <Chatroom communityId={communityId} />
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="members" className="space-y-4">
-          <div className="space-y-2">
+          <TabsContent value="members" className="space-y-4">
+            <div className="space-y-2">
               {members.length === 0 ? (
                 <Card>
                   <CardContent className="py-8 text-center text-slate-600">
@@ -224,27 +259,27 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
                 </Card>
               ) : (
                 members.map((member) => (
-              <Card key={member.id}>
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div>
+                  <Card key={member.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div>
                           <h4 className="font-medium text-slate-900">
                             {member.user.full_name}
                           </h4>
-                      <p className="text-sm text-slate-600">
+                          <p className="text-sm text-slate-600">
                             Joined {new Date(member.joined_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <span className="capitalize text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                      {member.role}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                          </p>
+                        </div>
+                        <span className="capitalize text-xs font-medium px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                          {member.role}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))
               )}
-          </div>
-        </TabsContent>
+            </div>
+          </TabsContent>
         </Tabs>
       ) : (
         <Card>
@@ -254,9 +289,9 @@ export default function CommunityDetailPage({ params }: { params: Promise<{ id: 
             </p>
             <Button onClick={handleJoin} disabled={joining}>
               {joining ? 'Joining...' : 'Join Now'}
-              </Button>
-                </CardContent>
-              </Card>
+            </Button>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
