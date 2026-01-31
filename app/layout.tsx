@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'v0 App',
+  title: 'IIT Goa',
   description: 'Created with v0',
   generator: 'v0.app',
   icons: {
@@ -44,7 +44,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-        {children}
+          {children}
         </ThemeProvider>
         <Analytics />
       </body>

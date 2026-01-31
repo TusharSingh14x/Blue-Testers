@@ -4,18 +4,24 @@ import { createClient } from '@/lib/supabase-server';
 export async function GET() {
   try {
     const supabase = await createClient();
-    
+
     // Don't auto-create General community here - only organizers/admins can create it
     // The RPC function or init endpoint should be called explicitly by organizers/admins
-    
+
     const { data: communities, error } = await supabase
       .from('communities')
-      .select('*')
+      .select('*, community_members(count)')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    return NextResponse.json(communities);
+    // Transform data to map the count to member_count property
+    const formattedCommunities = communities.map((community: any) => ({
+      ...community,
+      member_count: community.community_members?.[0]?.count || 0
+    }));
+
+    return NextResponse.json(formattedCommunities);
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch communities' },
@@ -101,8 +107,8 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error('Error inserting community:', insertError);
       return NextResponse.json(
-        { 
-          error: 'Failed to create community', 
+        {
+          error: 'Failed to create community',
           details: insertError.message,
           code: insertError.code,
           hint: insertError.hint
@@ -137,7 +143,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Unexpected error creating community:', error);
     return NextResponse.json(
-      { 
+      {
         error: error instanceof Error ? error.message : 'Failed to create community',
         details: error instanceof Error ? error.stack : undefined
       },

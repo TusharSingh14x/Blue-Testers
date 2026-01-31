@@ -28,3 +28,18 @@ export async function createClient() {
   );
 }
 
+export async function createAdminClient() {
+  // Use the service role key to bypass RLS
+  // We do NOT pass cookies here, because we want this client to act as the Service Role (superuser),
+  // not as the logged-in user.
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        getAll() { return [] },
+        setAll() { }
+      }
+    }
+  );
+}

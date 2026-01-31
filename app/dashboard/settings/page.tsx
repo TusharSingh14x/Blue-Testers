@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +26,7 @@ const STORAGE_KEY = 'campus.settings.prefs.v1';
 export default function SettingsPage() {
   const { profile } = useAuth();
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [notifications, setNotifications] = useState({
@@ -45,6 +47,34 @@ export default function SettingsPage() {
     }),
     [notifications, profileVisibility, theme]
   );
+
+  const [saving, setSaving] = useState(false);
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/users/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_name: fullName, email }),
+      });
+
+      if (response.ok) {
+        alert('Profile updated successfully!');
+        router.refresh(); // Soft refresh to update server components with new data
+      } else {
+        const data = await response.json();
+        alert(`Failed to update profile: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      alert('Failed to update profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+
 
   // Sync editable profile fields from loaded profile
   useEffect(() => {
@@ -152,7 +182,9 @@ export default function SettingsPage() {
               Your role is assigned by the system. Click "Sync Role" if your role doesn't match what you selected during signup.
             </p>
           </div>
-          <Button variant="outline">Edit Profile</Button>
+          <Button onClick={handleSaveProfile} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
         </CardContent>
       </Card>
 

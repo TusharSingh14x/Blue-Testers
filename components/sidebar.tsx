@@ -67,8 +67,8 @@ export function Sidebar() {
   return (
     <div className="w-64 bg-white border-r border-slate-200 flex flex-col">
       <Link href="/dashboard" className="p-6 border-b border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer">
-        <h1 className="text-2xl font-bold text-blue-600">Campus Hub</h1>
-        <p className="text-xs text-slate-600 mt-1">Resource Management</p>
+        <h1 className="text-2xl font-bold text-blue-600">IIT Goa</h1>
+        <p className="text-xs text-slate-600 mt-1">Campus Portal</p>
       </Link>
 
       <nav className="flex-1 px-4 py-6 space-y-2">

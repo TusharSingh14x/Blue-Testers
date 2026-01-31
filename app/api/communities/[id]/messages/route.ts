@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> | { id: string } }
@@ -159,7 +161,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
+    // Check if user is admin - using standard client (RLS applies, but reading users/role should be allowed for auth user)
     const { data: userProfile } = await supabase
       .from('users')
       .select('role')
@@ -170,12 +172,21 @@ export async function DELETE(
       return NextResponse.json({ error: 'Forbidden: Admins only' }, { status: 403 });
     }
 
-    const { error } = await supabase
+    // Use Admin Client to delete the message (Bypassing RLS)
+    const { createAdminClient } = await import('@/lib/supabase-server');
+    const supabaseAdmin = await createAdminClient();
+
+    const { error, count } = await supabaseAdmin
       .from('community_messages')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('id', messageId);
 
     if (error) throw error;
+
+    if (count === 0) {
+      console.error('No rows deleted. Likely RLS policy violation.');
+      return NextResponse.json({ error: 'Failed to delete. Check permissions.' }, { status: 403 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
