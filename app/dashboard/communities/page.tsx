@@ -325,13 +325,13 @@ export default function CommunitiesPage() {
             return (
               <Card className="border-2 border-blue-500 bg-blue-50">
                 <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         <h3 className="text-xl font-bold text-blue-900">General Chatroom</h3>
                         <Badge className="bg-blue-600 text-white">Create Now</Badge>
                       </div>
-                      <p className="text-sm text-blue-700 mb-4">
+                      <p className="text-sm text-blue-700 mb-0 md:mb-4">
                         Create the General chatroom for all campus members to connect and communicate.
                       </p>
                     </div>
@@ -342,7 +342,7 @@ export default function CommunitiesPage() {
                           fetchJoinedCommunities();
                         });
                       }}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
                     >
                       Create General Chatroom
                     </Button>
@@ -376,33 +376,33 @@ export default function CommunitiesPage() {
         return (
           <Card className="border-2 border-blue-500 bg-blue-50">
             <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
                     <h3 className="text-xl font-bold text-blue-900">General Chatroom</h3>
                     <Badge className="bg-blue-600 text-white">Everyone Welcome</Badge>
                   </div>
-                  <p className="text-sm text-blue-700 mb-4">
+                  <p className="text-sm text-blue-700 mb-2 md:mb-4">
                     Join the general chatroom to connect with all campus members!
                   </p>
-                  <div className="flex items-center gap-1 text-blue-600 mb-4">
+                  <div className="flex items-center gap-1 text-blue-600 mb-2 md:mb-4">
                     <Users size={16} />
                     <span className="text-sm font-medium">
                       {generalCommunity.member_count || 0} members
                     </span>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full md:w-auto">
                   {isJoined ? (
-                    <Link href={`/dashboard/communities/${generalId}`}>
-                      <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Link href={`/dashboard/communities/${generalId}`} className="w-full md:w-auto">
+                      <Button className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto">
                         Open General Chatroom
                       </Button>
                     </Link>
                   ) : (
                     <Button
                       onClick={() => handleJoin(generalId)}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 w-full md:w-auto"
                     >
                       Join General Chatroom
                     </Button>
