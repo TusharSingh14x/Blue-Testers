@@ -1,12 +1,23 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface Message {
   id: string;
@@ -25,10 +36,12 @@ interface ChatroomProps {
 
 export function Chatroom({ communityId }: ChatroomProps) {
   const { user, profile } = useAuth();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,19 +90,26 @@ export function Chatroom({ communityId }: ChatroomProps) {
         await fetchMessages();
       } else {
         const error = await response.json();
-        alert(`Failed to send message: ${error.error}`);
+        toast({
+          title: 'Error',
+          description: `Failed to send message: ${error.error}`,
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert('Failed to send message');
+      toast({
+        title: 'Error',
+        description: 'Failed to send message',
+        variant: 'destructive',
+      });
     } finally {
       setSending(false);
     }
   };
 
   const handleDeleteMessage = async (messageId: string) => {
-    if (!confirm('Are you sure you want to delete this message?')) return;
-
+    // Dialog handling is done via state now, so we proceed directly to delete
     try {
       const response = await fetch(`/api/communities/${communityId}/messages?messageId=${messageId}`, {
         method: 'DELETE',
@@ -98,13 +118,27 @@ export function Chatroom({ communityId }: ChatroomProps) {
       if (response.ok) {
         // Optimistically remove the message from state
         setMessages((prev) => prev.filter((m) => m.id !== messageId));
+        toast({
+          title: 'Message Deleted',
+          description: 'The message has been removed.',
+        });
       } else {
         const error = await response.json();
-        alert(`Failed to delete message: ${error.error}`);
+        toast({
+          title: 'Error',
+          description: `Failed to delete message: ${error.error}`,
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Failed to delete message:', error);
-      alert('Failed to delete message');
+      toast({
+        title: 'Error',
+        description: 'Failed to delete message',
+        variant: 'destructive',
+      });
+    } finally {
+      setMessageToDelete(null); // Close dialog
     }
   };
 
@@ -173,7 +207,7 @@ export function Chatroom({ communityId }: ChatroomProps) {
                         </span>
                         {isAdmin && !isOwnMessage && (
                           <button
-                            onClick={() => handleDeleteMessage(message.id)}
+                            onClick={() => setMessageToDelete(message.id)}
                             className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 text-xs transition-opacity"
                             title="Delete message"
                           >
@@ -215,6 +249,26 @@ export function Chatroom({ communityId }: ChatroomProps) {
           </Button>
         </div>
       </form>
+
+      <AlertDialog open={!!messageToDelete} onOpenChange={(open) => !open && setMessageToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Message</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this message? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+              onClick={() => messageToDelete && handleDeleteMessage(messageToDelete)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

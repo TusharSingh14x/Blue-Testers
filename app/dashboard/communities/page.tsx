@@ -13,6 +13,7 @@ import { useRole } from '@/hooks/use-role';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Chatbot } from '@/components/Chatbot';
+import { useToast } from '@/components/ui/use-toast';
 
 interface Community {
   id: string;
@@ -25,8 +26,9 @@ interface Community {
 export default function CommunitiesPage() {
   const { user, profile } = useAuth();
   const { canManageContent, role } = useRole();
+  const { toast } = useToast();
   const router = useRouter();
-  
+
   // Debug logging
   useEffect(() => {
     console.log('Communities Page - User role:', role);
@@ -49,14 +51,14 @@ export default function CommunitiesPage() {
   const ensureGeneralCommunity = async () => {
     // Only organizers/admins can create the General community
     if (!canManageContent) return;
-    
+
     // Check if General community exists, if not, create it
     try {
       const response = await fetch('/api/communities');
       if (response.ok) {
         const communities = await response.json();
         const generalExists = communities.some((c: Community) => c.name === 'General');
-        
+
         if (!generalExists) {
           // Only organizers/admins can trigger creation
           const initResponse = await fetch('/api/communities/init', {
@@ -91,7 +93,7 @@ export default function CommunitiesPage() {
 
   const fetchJoinedCommunities = async () => {
     if (!user) return;
-    
+
     try {
       // Fetch all memberships in a single API call
       const response = await fetch('/api/communities/memberships');
@@ -120,6 +122,10 @@ export default function CommunitiesPage() {
       if (response.ok) {
         // Optimistically update the UI immediately
         setJoinedCommunities(prev => new Set(prev).add(communityId));
+        toast({
+          title: 'Joined Community',
+          description: 'You have successfully joined the community.',
+        });
         // Refresh communities to update member counts
         await fetchCommunities();
         // Refresh memberships in the background (non-blocking)
@@ -128,7 +134,11 @@ export default function CommunitiesPage() {
         router.push(`/dashboard/communities/${communityId}`);
       } else {
         const error = await response.json();
-        alert(`Failed to join: ${error.error}`);
+        toast({
+          title: 'Error',
+          description: `Failed to join: ${error.error}`,
+          variant: 'destructive',
+        });
         // Revert optimistic update on error
         setJoinedCommunities(prev => {
           const updated = new Set(prev);
@@ -138,7 +148,11 @@ export default function CommunitiesPage() {
       }
     } catch (error) {
       console.error('Failed to join community:', error);
-      alert('Failed to join community');
+      toast({
+        title: 'Error',
+        description: 'Failed to join community',
+        variant: 'destructive',
+      });
       // Revert optimistic update on error
       setJoinedCommunities(prev => {
         const updated = new Set(prev);
@@ -151,7 +165,11 @@ export default function CommunitiesPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canManageContent) {
-      alert('Only organizers and admins can create communities');
+      toast({
+        title: 'Permission Denied',
+        description: 'Only organizers and admins can create communities',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -169,14 +187,26 @@ export default function CommunitiesPage() {
         const community = await response.json();
         setNewCommunity({ name: '', description: '' });
         await fetchCommunities();
+        toast({
+          title: 'Community Created',
+          description: 'Your new community is ready!',
+        });
         router.push(`/dashboard/communities/${community.id}`);
       } else {
         const error = await response.json();
-        alert(`Failed to create community: ${error.error}`);
+        toast({
+          title: 'Error',
+          description: `Failed to create community: ${error.error}`,
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Failed to create community:', error);
-      alert('Failed to create community');
+      toast({
+        title: 'Error',
+        description: 'Failed to create community',
+        variant: 'destructive',
+      });
     } finally {
       setCreating(false);
     }
@@ -218,8 +248,8 @@ export default function CommunitiesPage() {
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="text-sm font-medium">Community Name</label>
-                <Input 
-                  placeholder="Enter community name" 
+                <Input
+                  placeholder="Enter community name"
                   value={newCommunity.name}
                   onChange={(e) => setNewCommunity({ ...newCommunity, name: e.target.value })}
                   required
@@ -227,8 +257,8 @@ export default function CommunitiesPage() {
               </div>
               <div>
                 <label className="text-sm font-medium">Description</label>
-                <Textarea 
-                  placeholder="What is this community about?" 
+                <Textarea
+                  placeholder="What is this community about?"
                   value={newCommunity.description}
                   onChange={(e) => setNewCommunity({ ...newCommunity, description: e.target.value })}
                   required
@@ -306,10 +336,10 @@ export default function CommunitiesPage() {
             );
           }
         }
-        
+
         const generalId = generalCommunity.id;
         const isJoined = joinedCommunities.has(generalId);
-        
+
         return (
           <Card className="border-2 border-blue-500 bg-blue-50">
             <CardContent className="pt-6">
@@ -356,22 +386,22 @@ export default function CommunitiesPage() {
           .filter(community => community.name !== 'General')
           .map((community) => {
             const isJoined = joinedCommunities.has(community.id);
-          return (
-            <Card key={community.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div>
+            return (
+              <Card key={community.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="pt-6">
+                  <div className="space-y-4">
+                    <div>
                       <Link href={`/dashboard/communities/${community.id}`}>
                         <h3 className="text-lg font-semibold text-slate-900 hover:text-blue-600 cursor-pointer">
                           {community.name}
                         </h3>
                       </Link>
-                    <p className="text-sm text-slate-600 mt-1">{community.description}</p>
-                  </div>
+                      <p className="text-sm text-slate-600 mt-1">{community.description}</p>
+                    </div>
 
-                  <div className="flex gap-4 text-sm">
-                    <div className="flex items-center gap-1 text-slate-600">
-                      <Users size={16} />
+                    <div className="flex gap-4 text-sm">
+                      <div className="flex items-center gap-1 text-slate-600">
+                        <Users size={16} />
                         <span>{community.member_count} members</span>
                       </div>
                     </div>
@@ -394,11 +424,11 @@ export default function CommunitiesPage() {
                         </Button>
                       )}
                     </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
       </div>
 
       {filteredCommunities.length === 0 && (

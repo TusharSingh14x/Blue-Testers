@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTheme } from 'next-themes';
+import { useToast } from '@/components/ui/use-toast';
 
 type SettingsPrefs = {
   notifications: {
@@ -26,6 +27,7 @@ const STORAGE_KEY = 'campus.settings.prefs.v1';
 export default function SettingsPage() {
   const { profile } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { toast } = useToast();
   const router = useRouter();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -60,15 +62,26 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        alert('Profile updated successfully!');
+        toast({
+          title: 'Success',
+          description: 'Profile updated successfully!',
+        });
         router.refresh(); // Soft refresh to update server components with new data
       } else {
         const data = await response.json();
-        alert(`Failed to update profile: ${data.error}`);
+        toast({
+          title: 'Error',
+          description: `Failed to update profile: ${data.error}`,
+          variant: 'destructive',
+        });
       }
     } catch (error) {
       console.error('Failed to update profile:', error);
-      alert('Failed to update profile. Please try again.');
+      toast({
+        title: 'Error',
+        description: 'Failed to update profile. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setSaving(false);
     }
@@ -165,13 +178,24 @@ export default function SettingsPage() {
                     });
                     const data = await response.json();
                     if (response.ok) {
-                      alert(`Role synced! Your role is now: ${data.user.role}`);
+                      toast({
+                        title: 'Role Synced',
+                        description: `Your role is now: ${data.user.role}`,
+                      });
                       window.location.reload();
                     } else {
-                      alert(`Failed to sync role: ${data.error}`);
+                      toast({
+                        title: 'Sync Failed',
+                        description: data.error,
+                        variant: 'destructive',
+                      });
                     }
                   } catch (error) {
-                    alert('Failed to sync role. Please try again.');
+                    toast({
+                      title: 'Error',
+                      description: 'Failed to sync role. Please try again.',
+                      variant: 'destructive',
+                    });
                   }
                 }}
               >
