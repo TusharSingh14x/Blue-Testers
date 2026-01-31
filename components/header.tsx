@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, Bell, Calendar, BookOpen, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Search, Bell, Calendar, BookOpen, MessageSquare, ShieldCheck, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Sidebar } from '@/components/sidebar';
 
 const pageNames: Record<string, string> = {
   '/dashboard/events': 'Events',
@@ -92,10 +94,24 @@ export function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">{pageTitle}</h2>
-        <p className="text-sm text-slate-600 capitalize">{profile?.role}</p>
+    <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between gap-4">
+      <div className="flex items-center gap-4">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="md:hidden">
+              <Menu size={24} />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-72">
+            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+            <SheetDescription className="sr-only">Main navigation menu</SheetDescription>
+            <Sidebar className="w-full h-full border-none" />
+          </SheetContent>
+        </Sheet>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">{pageTitle}</h2>
+          <p className="text-sm text-slate-600 capitalize">{profile?.role}</p>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">
